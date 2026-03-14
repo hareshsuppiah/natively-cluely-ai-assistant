@@ -60,7 +60,9 @@ export class MeetingBriefManager {
     public setPath(filePath: string): void {
         this.stopWatching();
         this.filePath = filePath;
-        CredentialsManager.getInstance().setMeetingBriefPath(filePath);
+        const creds = CredentialsManager.getInstance();
+        creds.setMeetingBriefPath(filePath);
+        creds.addMeetingBriefRecentFile(filePath);
         this.readFile();
         this.startWatching();
         this.notifyChange();
@@ -125,6 +127,29 @@ export class MeetingBriefManager {
         creds.setMeetingBriefText(undefined);
         this.notifyChange();
         console.log('[MeetingBriefManager] Cleared');
+    }
+
+    /**
+     * Clear active content but preserve recents list.
+     * Used on meeting end to avoid stale context bleeding into next meeting.
+     */
+    public clearContent(): void {
+        this.stopWatching();
+        this.filePath = undefined;
+        this.fileContent = '';
+        this.typedText = '';
+        const creds = CredentialsManager.getInstance();
+        creds.setMeetingBriefPath(undefined);
+        creds.setMeetingBriefText(undefined);
+        this.notifyChange();
+        console.log('[MeetingBriefManager] Content cleared (recents preserved)');
+    }
+
+    /**
+     * Get recent file paths.
+     */
+    public getRecentFiles(): string[] {
+        return CredentialsManager.getInstance().getMeetingBriefRecentFiles();
     }
 
     /**

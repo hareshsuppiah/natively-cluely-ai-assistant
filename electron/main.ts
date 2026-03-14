@@ -267,7 +267,7 @@ export class AppState {
            const { CredentialsManager } = require('./services/CredentialsManager');
            const cm = CredentialsManager.getInstance();
            this.ragManager.initializeEmbeddings({
-              openaiKey: cm.getOpenAiApiKey() || process.env.OPENAI_API_KEY || undefined,
+              openaiKey: cm.getOpenaiApiKey() || process.env.OPENAI_API_KEY || undefined,
               geminiKey: cm.getGeminiApiKey() || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || undefined,
               ollamaUrl: process.env.OLLAMA_URL || "http://localhost:11434"
            });
@@ -286,7 +286,7 @@ export class AppState {
       if (sqliteDb) {
         const { CredentialsManager } = require('./services/CredentialsManager');
         const cm = CredentialsManager.getInstance();
-        const openaiKey = cm.getOpenAiApiKey() || process.env.OPENAI_API_KEY;
+        const openaiKey = cm.getOpenaiApiKey() || process.env.OPENAI_API_KEY;
         const geminiKey = cm.getGeminiApiKey() || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
         
         this.ragManager = new RAGManager({ 
@@ -919,6 +919,15 @@ export class AppState {
 
     // 4. Reset Intelligence Context & Save
     await this.intelligenceManager.stopMeeting();
+
+    // 4c. Clear meeting brief content (preserves recents for quick re-select)
+    try {
+      const { MeetingBriefManager } = require('./services/MeetingBriefManager');
+      MeetingBriefManager.getInstance().clearContent();
+      this.intelligenceManager.updateMeetingBrief();
+    } catch (e) {
+      console.error('[Main] Failed to clear meeting brief:', e);
+    }
 
     // 5. Revert to Default Model (One-Way Sync Revert)
     // This ensures next meeting starts with default, not the temporary one used in this session

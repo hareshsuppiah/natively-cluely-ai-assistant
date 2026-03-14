@@ -56,6 +56,7 @@ export interface StoredCredentials {
     // Meeting Brief
     meetingBriefPath?: string;
     meetingBriefText?: string;
+    meetingBriefRecentFiles?: string[];
 }
 
 export class CredentialsManager {
@@ -337,6 +338,20 @@ export class CredentialsManager {
         this.credentials.meetingBriefText = text;
         this.saveCredentials();
         console.log('[CredentialsManager] Meeting Brief text updated');
+    }
+
+    public getMeetingBriefRecentFiles(): string[] {
+        return this.credentials.meetingBriefRecentFiles || [];
+    }
+
+    public addMeetingBriefRecentFile(filePath: string): void {
+        const recents = this.credentials.meetingBriefRecentFiles || [];
+        // Remove if already present, then add to front
+        const filtered = recents.filter(f => f !== filePath);
+        filtered.unshift(filePath);
+        // Keep last 5
+        this.credentials.meetingBriefRecentFiles = filtered.slice(0, 5);
+        this.saveCredentials();
     }
 
     public saveCustomProvider(provider: CustomProvider): void {

@@ -272,6 +272,8 @@ export interface ElectronAPI {
   meetingBriefGet: () => Promise<{ path: string | null; text: string }>
   meetingBriefSetText: (text: string) => Promise<{ success: boolean; error?: string }>
   meetingBriefClear: () => Promise<{ success: boolean; error?: string }>
+  meetingBriefGetRecents: () => Promise<string[]>
+  meetingBriefSetPath: (filePath: string) => Promise<{ success: boolean; error?: string }>
 }
 
 declare global {

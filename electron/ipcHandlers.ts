@@ -2156,4 +2156,20 @@ export function initializeIpcHandlers(appState: AppState): void {
       return { success: false, error: error.message };
     }
   });
+
+  safeHandle("meeting-brief:get-recents", async () => {
+    const { MeetingBriefManager } = require('./services/MeetingBriefManager');
+    return MeetingBriefManager.getInstance().getRecentFiles();
+  });
+
+  safeHandle("meeting-brief:set-path", async (_, filePath: string) => {
+    try {
+      const { MeetingBriefManager } = require('./services/MeetingBriefManager');
+      MeetingBriefManager.getInstance().setPath(filePath);
+      appState.getIntelligenceManager().updateMeetingBrief();
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
 }

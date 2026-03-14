@@ -25,7 +25,9 @@ import {
     Link,
     Code,
     Copy,
-    Check
+    Check,
+    FileText,
+    ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -67,6 +69,10 @@ const NativelyInterface: React.FC<NativelyInterfaceProps> = ({ onEndMeeting }) =
     const [conversationContext, setConversationContext] = useState<string>('');
     const [isManualRecording, setIsManualRecording] = useState(false);
     const isRecordingRef = useRef(false);  // Ref to track recording state (avoids stale closure)
+    const [briefFileName, setBriefFileName] = useState<string | null>(null);
+    const [briefRecents, setBriefRecents] = useState<string[]>([]);
+    const [briefDropdownOpen, setBriefDropdownOpen] = useState(false);
+    const briefDropdownRef = useRef<HTMLDivElement>(null);
     const [manualTranscript, setManualTranscript] = useState('');
     const manualTranscriptRef = useRef<string>('');
     const [showTranscript, setShowTranscript] = useState(() => {
@@ -85,6 +91,24 @@ const NativelyInterface: React.FC<NativelyInterfaceProps> = ({ onEndMeeting }) =
         };
         window.addEventListener('storage', handleStorage);
         return () => window.removeEventListener('storage', handleStorage);
+    }, []);
+
+    // Load meeting brief state
+    useEffect(() => {
+        window.electronAPI?.meetingBriefGet?.().then((data) => {
+            setBriefFileName(data.path ? data.path.split('/').pop() || null : null);
+        }).catch(() => {});
+    }, []);
+
+    // Close brief dropdown on outside click
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            if (briefDropdownRef.current && !briefDropdownRef.current.contains(e.target as Node)) {
+                setBriefDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
     }, []);
 
     const [rollingTranscript, setRollingTranscript] = useState('');  // For interviewer rolling text bar
@@ -1599,6 +1623,85 @@ Provide only the answer, nothing else.`;
                                     <div ref={messagesEndRef} />
                                 </div>
                             )}
+
+                            {/* Meeting Brief Quick-Swap */}
+                            <div className="flex justify-center px-4 pb-1" ref={briefDropdownRef}>
+                                <div className="relative">
+                                    <button
+                                        onClick={async () => {
+                                            if (!briefDropdownOpen) {
+                                                const recents = await window.electronAPI?.meetingBriefGetRecents?.() || [];
+                                                setBriefRecents(recents);
+                                            }
+                                            setBriefDropdownOpen(!briefDropdownOpen);
+                                        }}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 interaction-base ${briefFileName
+                                            ? 'text-sky-400 bg-sky-500/10 border border-sky-500/20 hover:bg-sky-500/15'
+                                            : 'text-slate-500 bg-white/5 border border-white/0 hover:text-slate-300 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        <FileText className="w-3 h-3 opacity-70" />
+                                        {briefFileName || 'No brief'}
+                                        <ChevronRight className={`w-2.5 h-2.5 opacity-50 transition-transform ${briefDropdownOpen ? 'rotate-90' : ''}`} />
+                                    </button>
+
+                                    {briefDropdownOpen && (
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-56 bg-[#1E1E1E] border border-white/10 rounded-xl shadow-xl shadow-black/40 overflow-hidden z-50">
+                                            {briefRecents.length > 0 && (
+                                                <div className="p-1.5">
+                                                    <div className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider px-2 py-1">Recent</div>
+                                                    {briefRecents.map((filePath) => (
+                                                        <button
+                                                            key={filePath}
+                                                            onClick={async () => {
+                                                                await window.electronAPI?.meetingBriefSetPath?.(filePath);
+                                                                setBriefFileName(filePath.split('/').pop() || null);
+                                                                setBriefDropdownOpen(false);
+                                                            }}
+                                                            className={`w-full text-left px-2 py-1.5 rounded-lg text-[11px] transition-colors truncate ${briefFileName === filePath.split('/').pop()
+                                                                ? 'text-sky-400 bg-sky-500/10'
+                                                                : 'text-slate-300 hover:bg-white/10'
+                                                                }`}
+                                                            title={filePath}
+                                                        >
+                                                            <FileText className="w-3 h-3 inline mr-1.5 opacity-50" />
+                                                            {filePath.split('/').pop()}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <div className="border-t border-white/5 p-1.5 flex flex-col gap-0.5">
+                                                <button
+                                                    onClick={async () => {
+                                                        const result = await window.electronAPI?.meetingBriefSelectFile?.();
+                                                        if (result?.success && result.filePath) {
+                                                            setBriefFileName(result.filePath.split('/').pop() || null);
+                                                            const recents = await window.electronAPI?.meetingBriefGetRecents?.() || [];
+                                                            setBriefRecents(recents);
+                                                        }
+                                                        setBriefDropdownOpen(false);
+                                                    }}
+                                                    className="w-full text-left px-2 py-1.5 rounded-lg text-[11px] text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-colors"
+                                                >
+                                                    Browse for .md file...
+                                                </button>
+                                                {briefFileName && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            await window.electronAPI?.meetingBriefClear?.();
+                                                            setBriefFileName(null);
+                                                            setBriefDropdownOpen(false);
+                                                        }}
+                                                        className="w-full text-left px-2 py-1.5 rounded-lg text-[11px] text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                                    >
+                                                        Clear brief
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
                             {/* Quick Actions - Minimal & Clean */}
                             <div className={`flex flex-nowrap justify-center items-center gap-1.5 px-4 pb-3 overflow-x-hidden ${rollingTranscript && showTranscript ? 'pt-1' : 'pt-3'}`}>
