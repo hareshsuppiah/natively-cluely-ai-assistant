@@ -53,6 +53,9 @@ export interface StoredCredentials {
     groqPreferredModel?: string;
     openaiPreferredModel?: string;
     claudePreferredModel?: string;
+    // Meeting Brief
+    meetingBriefPath?: string;
+    meetingBriefText?: string;
 }
 
 export class CredentialsManager {
@@ -313,6 +316,27 @@ export class CredentialsManager {
         (this.credentials as any)[key] = modelId;
         this.saveCredentials();
         console.log(`[CredentialsManager] ${provider} preferred model set to: ${modelId}`);
+    }
+
+    // Meeting Brief
+    public getMeetingBriefPath(): string | undefined {
+        return this.credentials.meetingBriefPath;
+    }
+
+    public getMeetingBriefText(): string | undefined {
+        return this.credentials.meetingBriefText;
+    }
+
+    public setMeetingBriefPath(filePath: string | undefined): void {
+        this.credentials.meetingBriefPath = filePath;
+        this.saveCredentials();
+        console.log(`[CredentialsManager] Meeting Brief path set to: ${filePath || '(cleared)'}`);
+    }
+
+    public setMeetingBriefText(text: string | undefined): void {
+        this.credentials.meetingBriefText = text;
+        this.saveCredentials();
+        console.log('[CredentialsManager] Meeting Brief text updated');
     }
 
     public saveCustomProvider(provider: CustomProvider): void {

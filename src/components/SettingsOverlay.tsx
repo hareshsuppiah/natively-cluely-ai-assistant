@@ -5,7 +5,7 @@ import {
     ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
     Camera, RotateCcw, Eye, Layout, MessageSquare, Crop,
     ChevronDown, Check, BadgeCheck, Power, Palette, Calendar, Ghost, Sun, Moon, RefreshCw, Info, Globe, FlaskConical, Terminal, Settings, Activity, ExternalLink, Trash2,
-    Sparkles, Pencil, Briefcase, Building2, Search, MapPin, CheckCircle
+    Sparkles, Pencil, Briefcase, Building2, Search, MapPin, CheckCircle, FileText
 } from 'lucide-react';
 import { analytics } from '../lib/analytics/analytics.service';
 import { AboutSection } from './AboutSection';
@@ -263,6 +263,8 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
     const [profileData, setProfileData] = useState<any>(null);
     const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
     const [isPremium, setIsPremium] = useState(false);
+    const [meetingBriefPath, setMeetingBriefPath] = useState<string | null>(null);
+    const [meetingBriefText, setMeetingBriefText] = useState('');
     const [jdUploading, setJdUploading] = useState(false);
     const [jdError, setJdError] = useState('');
     const [companyResearching, setCompanyResearching] = useState(false);
@@ -278,6 +280,11 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
     useEffect(() => {
         if (isOpen) {
             window.electronAPI?.licenseCheckPremium?.().then(setIsPremium).catch(() => { });
+            // Load meeting brief state
+            window.electronAPI?.meetingBriefGet?.().then((data) => {
+                setMeetingBriefPath(data.path);
+                setMeetingBriefText(data.text || '');
+            }).catch(() => { });
         }
 
         if (window.electronAPI?.onUndetectableChanged) {
@@ -1274,6 +1281,66 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
 
                                     </div>
 
+                                    {/* Meeting Brief */}
+                                    <div className="bg-bg-item-surface rounded-xl p-5 border border-border-subtle">
+                                        <div className="flex flex-col gap-1 mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <FileText size={16} className="text-accent-primary" />
+                                                <h3 className="text-lg font-bold text-text-primary">Meeting Brief</h3>
+                                            </div>
+                                            <p className="text-xs text-text-secondary">
+                                                Give the AI context before or during meetings. Select a markdown file (e.g. from Obsidian) or type notes directly.
+                                            </p>
+                                        </div>
+
+                                        {/* File selector */}
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="flex-1 bg-bg-input border border-border-subtle rounded-lg px-3 py-2 text-xs text-text-secondary truncate">
+                                                {meetingBriefPath ? meetingBriefPath.split('/').pop() : 'No file selected'}
+                                            </div>
+                                            <button
+                                                onClick={async () => {
+                                                    const result = await window.electronAPI?.meetingBriefSelectFile?.();
+                                                    if (result?.success && result.filePath) {
+                                                        setMeetingBriefPath(result.filePath);
+                                                    }
+                                                }}
+                                                className="px-3 py-2 text-xs font-medium bg-accent-primary text-white rounded-lg hover:opacity-90 transition-opacity"
+                                            >
+                                                Select .md
+                                            </button>
+                                            {meetingBriefPath && (
+                                                <button
+                                                    onClick={async () => {
+                                                        await window.electronAPI?.meetingBriefClear?.();
+                                                        setMeetingBriefPath(null);
+                                                        setMeetingBriefText('');
+                                                    }}
+                                                    className="px-3 py-2 text-xs font-medium text-text-tertiary hover:text-red-500 transition-colors"
+                                                >
+                                                    Clear
+                                                </button>
+                                            )}
+                                        </div>
+                                        {meetingBriefPath && (
+                                            <p className="text-[10px] text-text-tertiary mb-3 truncate" title={meetingBriefPath}>
+                                                {meetingBriefPath}
+                                            </p>
+                                        )}
+
+                                        {/* Text area */}
+                                        <textarea
+                                            value={meetingBriefText}
+                                            onChange={(e) => setMeetingBriefText(e.target.value)}
+                                            onBlur={async () => {
+                                                await window.electronAPI?.meetingBriefSetText?.(meetingBriefText);
+                                            }}
+                                            placeholder="Or type context here... (project notes, agenda, key topics)"
+                                            className="w-full bg-bg-input border border-border-subtle rounded-lg px-3 py-2 text-xs text-text-primary placeholder-text-tertiary resize-none focus:outline-none focus:border-accent-primary transition-colors"
+                                            rows={3}
+                                        />
+                                    </div>
+
                                     {/* Process Disguise */}
                                     {/* Process Disguise */}
                                     <div className="bg-bg-item-surface rounded-xl p-5 border border-border-subtle">
@@ -1389,11 +1456,11 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                         )}
 
                                                         {/* High-fidelity Toggle */}
-                                                        <div className={`flex items-center gap-2 bg-bg-input px-3 py-1.5 rounded-full border border-border-subtle ${!isPremium ? 'opacity-40 cursor-not-allowed' : ''}`} title={!isPremium ? 'Requires Pro license' : ''}>
+                                                        <div className="flex items-center gap-2 bg-bg-input px-3 py-1.5 rounded-full border border-border-subtle">
                                                             <span className="text-xs font-medium text-text-secondary">Persona Engine</span>
                                                             <div
                                                                 onClick={async () => {
-                                                                    if (!profileStatus.hasProfile || !isPremium) return;
+                                                                    if (!profileStatus.hasProfile) return;
                                                                     const newState = !profileStatus.profileMode;
                                                                     try {
                                                                         await window.electronAPI?.profileSetMode?.(newState);
@@ -1402,9 +1469,9 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                                         console.error('Failed to toggle profile mode:', e);
                                                                     }
                                                                 }}
-                                                                className={`w-9 h-5 rounded-full relative transition-colors ${(!profileStatus.hasProfile || !isPremium) ? 'opacity-40 cursor-not-allowed bg-bg-toggle-switch' : profileStatus.profileMode ? 'bg-accent-primary cursor-pointer' : 'bg-bg-toggle-switch border border-border-muted cursor-pointer'}`}
+                                                                className={`w-9 h-5 rounded-full relative transition-colors ${!profileStatus.hasProfile ? 'opacity-40 cursor-not-allowed bg-bg-toggle-switch' : profileStatus.profileMode ? 'bg-accent-primary cursor-pointer' : 'bg-bg-toggle-switch border border-border-muted cursor-pointer'}`}
                                                             >
-                                                                <div className={`absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-transform ${profileStatus.profileMode && isPremium ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                                <div className={`absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-transform ${profileStatus.profileMode ? 'translate-x-4' : 'translate-x-0'}`} />
                                                             </div>
                                                         </div>
                                                     </div>

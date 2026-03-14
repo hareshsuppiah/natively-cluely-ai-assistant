@@ -2098,4 +2098,62 @@ export function initializeIpcHandlers(appState: AppState): void {
       return { success: false, error: error.message };
     }
   });
+
+  // ==========================================
+  // Meeting Brief
+  // ==========================================
+
+  safeHandle("meeting-brief:select-file", async () => {
+    try {
+      const result: any = await dialog.showOpenDialog({
+        title: 'Select Meeting Brief (.md)',
+        filters: [{ name: 'Markdown', extensions: ['md'] }],
+        properties: ['openFile'],
+      });
+
+      if (result.canceled || !result.filePaths.length) {
+        return { success: false, cancelled: true };
+      }
+
+      const filePath = result.filePaths[0];
+      const { MeetingBriefManager } = require('./services/MeetingBriefManager');
+      MeetingBriefManager.getInstance().setPath(filePath);
+      appState.getIntelligenceManager().updateMeetingBrief();
+
+      return { success: true, filePath };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  safeHandle("meeting-brief:get", async () => {
+    const { MeetingBriefManager } = require('./services/MeetingBriefManager');
+    const manager = MeetingBriefManager.getInstance();
+    return {
+      path: manager.getPath() || null,
+      text: manager.getText() || '',
+    };
+  });
+
+  safeHandle("meeting-brief:set-text", async (_, text: string) => {
+    try {
+      const { MeetingBriefManager } = require('./services/MeetingBriefManager');
+      MeetingBriefManager.getInstance().setText(text);
+      appState.getIntelligenceManager().updateMeetingBrief();
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  safeHandle("meeting-brief:clear", async () => {
+    try {
+      const { MeetingBriefManager } = require('./services/MeetingBriefManager');
+      MeetingBriefManager.getInstance().clear();
+      appState.getIntelligenceManager().updateMeetingBrief();
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
 }

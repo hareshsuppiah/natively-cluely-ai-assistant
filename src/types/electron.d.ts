@@ -266,6 +266,12 @@ export interface ElectronAPI {
   licenseCheckPremium: () => Promise<boolean>
   licenseDeactivate: () => Promise<void>
   licenseGetHardwareId: () => Promise<string>
+
+  // Meeting Brief
+  meetingBriefSelectFile: () => Promise<{ success: boolean; cancelled?: boolean; filePath?: string; error?: string }>
+  meetingBriefGet: () => Promise<{ path: string | null; text: string }>
+  meetingBriefSetText: (text: string) => Promise<{ success: boolean; error?: string }>
+  meetingBriefClear: () => Promise<{ success: boolean; error?: string }>
 }
 
 declare global {

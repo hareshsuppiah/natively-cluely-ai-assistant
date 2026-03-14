@@ -67,6 +67,9 @@ export class SessionTracker {
     // Reference to RecapLLM for epoch summarization (injected later)
     private recapLLM: RecapLLM | null = null;
 
+    // Meeting brief content (injected by MeetingBriefManager)
+    private meetingBriefContent: string = '';
+
     // ============================================
     // Configuration
     // ============================================
@@ -85,6 +88,14 @@ export class SessionTracker {
 
     public clearMeetingMetadata(): void {
         this.currentMeetingMetadata = null;
+    }
+
+    public setMeetingBriefContent(content: string): void {
+        this.meetingBriefContent = content;
+    }
+
+    public getMeetingBriefContent(): string {
+        return this.meetingBriefContent;
     }
 
     // ============================================
@@ -241,12 +252,17 @@ export class SessionTracker {
      */
     getFormattedContext(lastSeconds: number = 120): string {
         const items = this.getContext(lastSeconds);
-        return items.map(item => {
+        const transcript = items.map(item => {
             const label = item.role === 'interviewer' ? 'INTERVIEWER' :
                 item.role === 'user' ? 'ME' :
                     'ASSISTANT (PREVIOUS SUGGESTION)';
             return `[${label}]: ${item.text}`;
         }).join('\n');
+
+        if (this.meetingBriefContent) {
+            return `[MEETING BRIEF]\n${this.meetingBriefContent}\n\n[LIVE TRANSCRIPT]\n${transcript}`;
+        }
+        return transcript;
     }
 
     /**
@@ -273,13 +289,22 @@ export class SessionTracker {
             return `[${label}]: ${segment.text}`;
         }).join('\n');
 
+        const parts: string[] = [];
+
+        // Prepend meeting brief if available
+        if (this.meetingBriefContent) {
+            parts.push(`[MEETING BRIEF]\n${this.meetingBriefContent}`);
+        }
+
         // Prepend epoch summaries for full session context preservation
         if (this.transcriptEpochSummaries.length > 0) {
             const epochContext = this.transcriptEpochSummaries.join('\n---\n');
-            return `[SESSION HISTORY - EARLIER DISCUSSION]\n${epochContext}\n\n[RECENT TRANSCRIPT]\n${recentTranscript}`;
+            parts.push(`[SESSION HISTORY - EARLIER DISCUSSION]\n${epochContext}`);
         }
 
-        return recentTranscript;
+        parts.push(`[RECENT TRANSCRIPT]\n${recentTranscript}`);
+
+        return parts.join('\n\n');
     }
 
     // ============================================

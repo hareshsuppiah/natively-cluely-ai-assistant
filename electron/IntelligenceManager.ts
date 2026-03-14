@@ -12,6 +12,7 @@ import { LLMHelper } from './LLMHelper';
 import { SessionTracker } from './SessionTracker';
 import { IntelligenceEngine } from './IntelligenceEngine';
 import { MeetingPersistence } from './MeetingPersistence';
+import { MeetingBriefManager } from './services/MeetingBriefManager';
 
 // Re-export types for backward compatibility
 export type { TranscriptSegment, SuggestionTrigger, ContextItem } from './SessionTracker';
@@ -40,6 +41,16 @@ export class IntelligenceManager extends EventEmitter {
 
         // Forward all engine events through the facade
         this.forwardEngineEvents();
+
+        // Wire meeting brief content into session tracker
+        const briefManager = MeetingBriefManager.getInstance();
+        briefManager.init();
+        // Set initial content
+        this.session.setMeetingBriefContent(briefManager.getBriefContent());
+        // Listen for live changes (file edits, text updates)
+        briefManager.setOnContentChanged((content) => {
+            this.session.setMeetingBriefContent(content);
+        });
     }
 
     /**
@@ -115,6 +126,15 @@ export class IntelligenceManager extends EventEmitter {
 
     logUsage(type: string, question: string, answer: string): void {
         this.session.logUsage(type, question, answer);
+    }
+
+    // ============================================
+    // Meeting Brief (delegates to MeetingBriefManager)
+    // ============================================
+
+    updateMeetingBrief(): void {
+        const content = MeetingBriefManager.getInstance().getBriefContent();
+        this.session.setMeetingBriefContent(content);
     }
 
     // ============================================

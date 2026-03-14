@@ -233,6 +233,12 @@ interface ElectronAPI {
   // Google Search API
   setGoogleSearchApiKey: (apiKey: string) => Promise<{ success: boolean; error?: string }>;
   setGoogleSearchCseId: (cseId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Meeting Brief
+  meetingBriefSelectFile: () => Promise<{ success: boolean; cancelled?: boolean; filePath?: string; error?: string }>;
+  meetingBriefGet: () => Promise<{ path: string | null; text: string }>;
+  meetingBriefSetText: (text: string) => Promise<{ success: boolean; error?: string }>;
+  meetingBriefClear: () => Promise<{ success: boolean; error?: string }>;
 }
 
 export const PROCESSING_EVENTS = {
@@ -897,4 +903,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   licenseCheckPremium: () => ipcRenderer.invoke('license:check-premium'),
   licenseDeactivate: () => ipcRenderer.invoke('license:deactivate'),
   licenseGetHardwareId: () => ipcRenderer.invoke('license:get-hardware-id'),
+
+  // Meeting Brief
+  meetingBriefSelectFile: () => ipcRenderer.invoke('meeting-brief:select-file'),
+  meetingBriefGet: () => ipcRenderer.invoke('meeting-brief:get'),
+  meetingBriefSetText: (text: string) => ipcRenderer.invoke('meeting-brief:set-text', text),
+  meetingBriefClear: () => ipcRenderer.invoke('meeting-brief:clear'),
 } as ElectronAPI)
