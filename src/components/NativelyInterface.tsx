@@ -1735,6 +1735,11 @@ Provide only the answer, nothing else.`;
                                 </button>
                             </div>
 
+                            {/* Keybind hint */}
+                            <div className="text-center pb-1.5">
+                                <span className="text-[9px] text-slate-600">&#8984;B to hide/show</span>
+                            </div>
+
                             {/* Input Area */}
                             <div className="p-3 pt-0">
                                 {/* Latent Context Preview (Attached Screenshot) */}

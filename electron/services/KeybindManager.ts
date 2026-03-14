@@ -15,8 +15,8 @@ export const DEFAULT_KEYBINDS: KeybindConfig[] = [
     { id: 'general:toggle-visibility', label: 'Toggle Visibility', accelerator: 'CommandOrControl+B', isGlobal: true, defaultAccelerator: 'CommandOrControl+B' },
     { id: 'general:process-screenshots', label: 'Process Screenshots', accelerator: 'CommandOrControl+Enter', isGlobal: false, defaultAccelerator: 'CommandOrControl+Enter' },
     { id: 'general:reset-cancel', label: 'Reset / Cancel', accelerator: 'CommandOrControl+R', isGlobal: false, defaultAccelerator: 'CommandOrControl+R' },
-    { id: 'general:take-screenshot', label: 'Take Screenshot', accelerator: 'CommandOrControl+H', isGlobal: true, defaultAccelerator: 'CommandOrControl+H' },
-    { id: 'general:selective-screenshot', label: 'Selective Screenshot', accelerator: 'CommandOrControl+Shift+H', isGlobal: true, defaultAccelerator: 'CommandOrControl+Shift+H' },
+    { id: 'general:take-screenshot', label: 'Take Screenshot', accelerator: 'CommandOrControl+Shift+S', isGlobal: true, defaultAccelerator: 'CommandOrControl+Shift+S' },
+    { id: 'general:selective-screenshot', label: 'Selective Screenshot', accelerator: 'CommandOrControl+Shift+A', isGlobal: true, defaultAccelerator: 'CommandOrControl+Shift+A' },
 
     // Chat - Window Local (Handled via Menu or Renderer logic, but centralized here)
     { id: 'chat:whatToAnswer', label: 'What to Answer', accelerator: 'CommandOrControl+1', isGlobal: false, defaultAccelerator: 'CommandOrControl+1' },
