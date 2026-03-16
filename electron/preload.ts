@@ -241,6 +241,12 @@ interface ElectronAPI {
   meetingBriefClear: () => Promise<{ success: boolean; error?: string }>;
   meetingBriefGetRecents: () => Promise<string[]>;
   meetingBriefSetPath: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Response Style
+  responseStyleGetAll: () => Promise<{ styles: Array<{ id: string; name: string; prompt: string; builtin?: boolean }>; activeId: string }>;
+  responseStyleSet: (styleId: string) => Promise<{ success: boolean; error?: string }>;
+  responseStyleSaveCustom: (style: { id: string; name: string; prompt: string }) => Promise<{ success: boolean; error?: string }>;
+  responseStyleDeleteCustom: (id: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const PROCESSING_EVENTS = {
@@ -913,4 +919,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   meetingBriefClear: () => ipcRenderer.invoke('meeting-brief:clear'),
   meetingBriefGetRecents: () => ipcRenderer.invoke('meeting-brief:get-recents'),
   meetingBriefSetPath: (filePath: string) => ipcRenderer.invoke('meeting-brief:set-path', filePath),
+
+  // Response Style
+  responseStyleGetAll: () => ipcRenderer.invoke('response-style:get-all'),
+  responseStyleSet: (styleId: string) => ipcRenderer.invoke('response-style:set', styleId),
+  responseStyleSaveCustom: (style: { id: string; name: string; prompt: string }) => ipcRenderer.invoke('response-style:save-custom', style),
+  responseStyleDeleteCustom: (id: string) => ipcRenderer.invoke('response-style:delete-custom', id),
 } as ElectronAPI)

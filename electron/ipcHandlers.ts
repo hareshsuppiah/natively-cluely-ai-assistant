@@ -2172,4 +2172,48 @@ export function initializeIpcHandlers(appState: AppState): void {
       return { success: false, error: error.message };
     }
   });
+
+  // ==========================================
+  // Response Style
+  // ==========================================
+
+  safeHandle("response-style:get-all", async () => {
+    const { MeetingBriefManager } = require('./services/MeetingBriefManager');
+    const manager = MeetingBriefManager.getInstance();
+    return {
+      styles: manager.getAllStyles(),
+      activeId: manager.getActiveStyleId(),
+    };
+  });
+
+  safeHandle("response-style:set", async (_, styleId: string) => {
+    try {
+      const { MeetingBriefManager } = require('./services/MeetingBriefManager');
+      MeetingBriefManager.getInstance().setResponseStyle(styleId);
+      appState.getIntelligenceManager().updateMeetingBrief();
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  safeHandle("response-style:save-custom", async (_, style: { id: string; name: string; prompt: string }) => {
+    try {
+      const { CredentialsManager } = require('./services/CredentialsManager');
+      CredentialsManager.getInstance().saveCustomResponseStyle(style);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  safeHandle("response-style:delete-custom", async (_, id: string) => {
+    try {
+      const { CredentialsManager } = require('./services/CredentialsManager');
+      CredentialsManager.getInstance().deleteCustomResponseStyle(id);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
 }

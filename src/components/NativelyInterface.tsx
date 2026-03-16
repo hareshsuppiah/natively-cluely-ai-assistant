@@ -73,6 +73,11 @@ const NativelyInterface: React.FC<NativelyInterfaceProps> = ({ onEndMeeting }) =
     const [briefRecents, setBriefRecents] = useState<string[]>([]);
     const [briefDropdownOpen, setBriefDropdownOpen] = useState(false);
     const briefDropdownRef = useRef<HTMLDivElement>(null);
+    const [activeStyleId, setActiveStyleId] = useState('default');
+    const [activeStyleName, setActiveStyleName] = useState('Default');
+    const [allStyles, setAllStyles] = useState<Array<{ id: string; name: string; prompt: string; builtin?: boolean }>>([]);
+    const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
+    const styleDropdownRef = useRef<HTMLDivElement>(null);
     const [manualTranscript, setManualTranscript] = useState('');
     const manualTranscriptRef = useRef<string>('');
     const [showTranscript, setShowTranscript] = useState(() => {
@@ -93,18 +98,27 @@ const NativelyInterface: React.FC<NativelyInterfaceProps> = ({ onEndMeeting }) =
         return () => window.removeEventListener('storage', handleStorage);
     }, []);
 
-    // Load meeting brief state
+    // Load meeting brief + response style state
     useEffect(() => {
         window.electronAPI?.meetingBriefGet?.().then((data) => {
             setBriefFileName(data.path ? data.path.split('/').pop() || null : null);
         }).catch(() => {});
+        window.electronAPI?.responseStyleGetAll?.().then((data) => {
+            setAllStyles(data.styles);
+            setActiveStyleId(data.activeId);
+            const style = data.styles.find(s => s.id === data.activeId);
+            setActiveStyleName(style?.name || 'Default');
+        }).catch(() => {});
     }, []);
 
-    // Close brief dropdown on outside click
+    // Close brief/style dropdowns on outside click
     useEffect(() => {
         const handleClick = (e: MouseEvent) => {
             if (briefDropdownRef.current && !briefDropdownRef.current.contains(e.target as Node)) {
                 setBriefDropdownOpen(false);
+            }
+            if (styleDropdownRef.current && !styleDropdownRef.current.contains(e.target as Node)) {
+                setStyleDropdownOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClick);
@@ -1624,9 +1638,9 @@ Provide only the answer, nothing else.`;
                                 </div>
                             )}
 
-                            {/* Meeting Brief Quick-Swap */}
-                            <div className="flex justify-center px-4 pb-1" ref={briefDropdownRef}>
-                                <div className="relative">
+                            {/* Meeting Brief & Response Style Quick-Swap */}
+                            <div className="flex justify-center items-center gap-2 px-4 pb-1">
+                                <div className="relative" ref={briefDropdownRef}>
                                     <button
                                         onClick={async () => {
                                             if (!briefDropdownOpen) {
@@ -1646,7 +1660,7 @@ Provide only the answer, nothing else.`;
                                     </button>
 
                                     {briefDropdownOpen && (
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-56 bg-[#1E1E1E] border border-white/10 rounded-xl shadow-xl shadow-black/40 overflow-hidden z-50">
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-56 bg-[#1E1E1E] border border-white/10 rounded-xl shadow-xl shadow-black/40 overflow-hidden z-[9999]">
                                             {briefRecents.length > 0 && (
                                                 <div className="p-1.5">
                                                     <div className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider px-2 py-1">Recent</div>
@@ -1697,6 +1711,56 @@ Provide only the answer, nothing else.`;
                                                         Clear brief
                                                     </button>
                                                 )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Response Style Selector */}
+                                <div className="relative" ref={styleDropdownRef}>
+                                    <button
+                                        onClick={async () => {
+                                            if (!styleDropdownOpen) {
+                                                const data = await window.electronAPI?.responseStyleGetAll?.();
+                                                if (data) {
+                                                    setAllStyles(data.styles);
+                                                    setActiveStyleId(data.activeId);
+                                                }
+                                            }
+                                            setStyleDropdownOpen(!styleDropdownOpen);
+                                        }}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 interaction-base ${activeStyleId !== 'default'
+                                            ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/15'
+                                            : 'text-slate-500 bg-white/5 border border-white/0 hover:text-slate-300 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        <SlidersHorizontal className="w-3 h-3 opacity-70" />
+                                        {activeStyleName}
+                                        <ChevronRight className={`w-2.5 h-2.5 opacity-50 transition-transform ${styleDropdownOpen ? 'rotate-90' : ''}`} />
+                                    </button>
+
+                                    {styleDropdownOpen && (
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-52 bg-[#1E1E1E] border border-white/10 rounded-xl shadow-xl shadow-black/40 overflow-hidden z-[9999]">
+                                            <div className="p-1.5">
+                                                <div className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider px-2 py-1">Response Style</div>
+                                                {allStyles.map((style) => (
+                                                    <button
+                                                        key={style.id}
+                                                        onClick={async () => {
+                                                            await window.electronAPI?.responseStyleSet?.(style.id);
+                                                            setActiveStyleId(style.id);
+                                                            setActiveStyleName(style.name);
+                                                            setStyleDropdownOpen(false);
+                                                        }}
+                                                        className={`w-full text-left px-2 py-1.5 rounded-lg text-[11px] transition-colors ${activeStyleId === style.id
+                                                            ? 'text-amber-400 bg-amber-500/10'
+                                                            : 'text-slate-300 hover:bg-white/10'
+                                                            }`}
+                                                    >
+                                                        {style.name}
+                                                        {!style.builtin && <span className="text-[9px] text-slate-600 ml-1">(custom)</span>}
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
                                     )}

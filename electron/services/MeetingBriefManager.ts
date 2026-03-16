@@ -12,6 +12,40 @@ import { CredentialsManager } from './CredentialsManager';
 
 const MAX_BRIEF_CHARS = 4000;
 
+export interface ResponseStyle {
+    id: string;
+    name: string;
+    prompt: string;
+    builtin?: boolean;
+}
+
+export const BUILTIN_RESPONSE_STYLES: ResponseStyle[] = [
+    {
+        id: 'default',
+        name: 'Default',
+        prompt: '',
+        builtin: true,
+    },
+    {
+        id: 'simple',
+        name: 'Simple & Intuitive',
+        prompt: 'Respond in a way that is simple, intuitive, and easy to understand. Use everyday analogies and clear examples. Avoid jargon and technical terminology unless you explain it immediately. Pitch your answers as if teaching undergraduates or newcomers to the topic.',
+        builtin: true,
+    },
+    {
+        id: 'academic',
+        name: 'Academic',
+        prompt: 'Respond with academic precision and scholarly tone. Use correct technical terminology, reference established frameworks and methodologies where relevant. Pitch your answers as if speaking to fellow professors, researchers, or domain experts.',
+        builtin: true,
+    },
+    {
+        id: 'technical',
+        name: 'Technical / Practitioner',
+        prompt: 'Respond with practical, implementation-focused detail. Include specific tools, methods, formulas, or code references where relevant. Be concise but thorough. Pitch your answers as if speaking to experienced practitioners and data science professionals.',
+        builtin: true,
+    },
+];
+
 export class MeetingBriefManager {
     private static instance: MeetingBriefManager;
 
@@ -21,6 +55,7 @@ export class MeetingBriefManager {
     private watcher: fs.FSWatcher | null = null;
     private debounceTimer: NodeJS.Timeout | null = null;
     private onContentChanged: ((content: string) => void) | null = null;
+    private activeStyleId: string = 'default';
 
     private constructor() {}
 
@@ -39,12 +74,14 @@ export class MeetingBriefManager {
         this.filePath = creds.getMeetingBriefPath();
         this.typedText = creds.getMeetingBriefText() || '';
 
+        this.activeStyleId = creds.getActiveResponseStyle() || 'default';
+
         if (this.filePath) {
             this.readFile();
             this.startWatching();
         }
 
-        console.log(`[MeetingBriefManager] Initialized — file: ${this.filePath || 'none'}, text: ${this.typedText.length} chars`);
+        console.log(`[MeetingBriefManager] Initialized — file: ${this.filePath || 'none'}, text: ${this.typedText.length} chars, style: ${this.activeStyleId}`);
     }
 
     /**
@@ -92,10 +129,16 @@ export class MeetingBriefManager {
     }
 
     /**
-     * Get merged brief content (file + typed text), truncated to limit.
+     * Get merged brief content (response style + file + typed text), truncated to limit.
      */
     public getBriefContent(): string {
         const parts: string[] = [];
+
+        // Include response style instructions
+        const stylePrompt = this.getActiveStylePrompt();
+        if (stylePrompt) {
+            parts.push(`[RESPONSE STYLE]\n${stylePrompt}`);
+        }
 
         if (this.fileContent.trim()) {
             parts.push(this.fileContent.trim());
@@ -138,9 +181,11 @@ export class MeetingBriefManager {
         this.filePath = undefined;
         this.fileContent = '';
         this.typedText = '';
+        this.activeStyleId = 'default';
         const creds = CredentialsManager.getInstance();
         creds.setMeetingBriefPath(undefined);
         creds.setMeetingBriefText(undefined);
+        creds.setActiveResponseStyle(undefined);
         this.notifyChange();
         console.log('[MeetingBriefManager] Content cleared (recents preserved)');
     }
@@ -150,6 +195,37 @@ export class MeetingBriefManager {
      */
     public getRecentFiles(): string[] {
         return CredentialsManager.getInstance().getMeetingBriefRecentFiles();
+    }
+
+    // =========================================================================
+    // Response Style
+    // =========================================================================
+
+    public setResponseStyle(styleId: string): void {
+        this.activeStyleId = styleId;
+        CredentialsManager.getInstance().setActiveResponseStyle(styleId === 'default' ? undefined : styleId);
+        this.notifyChange();
+        console.log(`[MeetingBriefManager] Response style set to: ${styleId}`);
+    }
+
+    public getActiveStyleId(): string {
+        return this.activeStyleId;
+    }
+
+    public getAllStyles(): ResponseStyle[] {
+        const custom = CredentialsManager.getInstance().getCustomResponseStyles().map(s => ({
+            ...s,
+            builtin: false,
+        }));
+        return [...BUILTIN_RESPONSE_STYLES, ...custom];
+    }
+
+    private getActiveStylePrompt(): string {
+        if (this.activeStyleId === 'default') return '';
+
+        const allStyles = this.getAllStyles();
+        const style = allStyles.find(s => s.id === this.activeStyleId);
+        return style?.prompt || '';
     }
 
     /**

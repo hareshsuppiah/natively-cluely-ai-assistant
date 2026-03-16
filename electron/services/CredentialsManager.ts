@@ -57,6 +57,9 @@ export interface StoredCredentials {
     meetingBriefPath?: string;
     meetingBriefText?: string;
     meetingBriefRecentFiles?: string[];
+    // Response Style
+    activeResponseStyle?: string; // id of active style
+    customResponseStyles?: Array<{ id: string; name: string; prompt: string }>;
 }
 
 export class CredentialsManager {
@@ -342,6 +345,45 @@ export class CredentialsManager {
 
     public getMeetingBriefRecentFiles(): string[] {
         return this.credentials.meetingBriefRecentFiles || [];
+    }
+
+    // Response Style
+    public getActiveResponseStyle(): string | undefined {
+        return this.credentials.activeResponseStyle;
+    }
+
+    public setActiveResponseStyle(styleId: string | undefined): void {
+        this.credentials.activeResponseStyle = styleId;
+        this.saveCredentials();
+        console.log(`[CredentialsManager] Response style set to: ${styleId || '(default)'}`);
+    }
+
+    public getCustomResponseStyles(): Array<{ id: string; name: string; prompt: string }> {
+        return this.credentials.customResponseStyles || [];
+    }
+
+    public saveCustomResponseStyle(style: { id: string; name: string; prompt: string }): void {
+        if (!this.credentials.customResponseStyles) {
+            this.credentials.customResponseStyles = [];
+        }
+        const index = this.credentials.customResponseStyles.findIndex(s => s.id === style.id);
+        if (index !== -1) {
+            this.credentials.customResponseStyles[index] = style;
+        } else {
+            this.credentials.customResponseStyles.push(style);
+        }
+        this.saveCredentials();
+        console.log(`[CredentialsManager] Custom response style '${style.name}' saved`);
+    }
+
+    public deleteCustomResponseStyle(id: string): void {
+        if (!this.credentials.customResponseStyles) return;
+        this.credentials.customResponseStyles = this.credentials.customResponseStyles.filter(s => s.id !== id);
+        if (this.credentials.activeResponseStyle === id) {
+            this.credentials.activeResponseStyle = undefined;
+        }
+        this.saveCredentials();
+        console.log(`[CredentialsManager] Custom response style '${id}' deleted`);
     }
 
     public addMeetingBriefRecentFile(filePath: string): void {

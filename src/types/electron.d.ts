@@ -274,6 +274,12 @@ export interface ElectronAPI {
   meetingBriefClear: () => Promise<{ success: boolean; error?: string }>
   meetingBriefGetRecents: () => Promise<string[]>
   meetingBriefSetPath: (filePath: string) => Promise<{ success: boolean; error?: string }>
+
+  // Response Style
+  responseStyleGetAll: () => Promise<{ styles: Array<{ id: string; name: string; prompt: string; builtin?: boolean }>; activeId: string }>
+  responseStyleSet: (styleId: string) => Promise<{ success: boolean; error?: string }>
+  responseStyleSaveCustom: (style: { id: string; name: string; prompt: string }) => Promise<{ success: boolean; error?: string }>
+  responseStyleDeleteCustom: (id: string) => Promise<{ success: boolean; error?: string }>
 }
 
 declare global {
